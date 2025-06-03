@@ -24,6 +24,12 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build
+       
+        # Ошибки в консоле CI
+      - name: Print test failures
+        if: failure()
+        run: |
+          find build/test-results/test -name "*.xml" -exec grep -H "<failure" {} \; || true
 
       - name: Run application
         run: java -jar $(ls ./build/libs/app-order*.jar | head -n 1)
