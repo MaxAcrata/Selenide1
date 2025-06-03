@@ -1,58 +1,30 @@
-name: Java CI on Windows
+name: Java CI with Gradle
 
-on: [push, pull_request]
+# Обновлённый код для запуска CI на всех ветках
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
   build:
-    runs-on: windows-latest
+
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v2
       - name: Set up JDK 11
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v2
         with:
           java-version: '11'
-          distribution: 'temurin'
+          distribution: 'adopt'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew test
 
-      - name: Start and verify server
-        shell: pwsh
-        run: |
-          $serverProcess = Start-Process -FilePath "java" -ArgumentList "-jar", ".\\artifacts\\app-order.jar" -PassThru
-          Write-Host "Server started with PID: $($serverProcess.Id)"
-
-          $attempt = 0
-          $maxAttempts = 30
-          $isReady = $false
-
-          while ($attempt -lt $maxAttempts -and -not $isReady) {
-              $attempt++
-              try {
-                  $response = Invoke-WebRequest -Uri "http://localhost:9999/api/v1/demo/accounts" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-                  if ($response.StatusCode -eq 200) {
-                      Write-Host "Server is ready"
-                      $isReady = $true
-                      break
-                  }
-              } catch {
-                  Write-Host "Attempt ${attempt} of ${maxAttempts}: Server not ready yet"
-                  Start-Sleep -Seconds 1
-              }
-          }
-
-          if (-not $isReady) {
-              Write-Host "Server did not become ready in time"
-              Stop-Process -Id $serverProcess.Id -Force
-              exit 1
-          }
-
-      - name: Run tests
-        run: ./gradlew clean test --info
-
-      - name: Kill server process
-        shell: pwsh
-        run: |
-          Get-Process java -ErrorAction SilentlyContinue | ForEach-Object {
-            Write-Host "Stopping process ID $($_.Id)"
-            Stop-Process -Id $_.Id -Force
-          }
+# Команда `chmod +x gradlew` делает файл gradlew исполняемым в linux. 
+# Команда `./gradlew test` собирает ваш проект и запускает тесты.
